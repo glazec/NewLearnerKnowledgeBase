@@ -1,0 +1,5 @@
+pinecone-client
+cohere
+numpy
+jieba
+chinese-converter
