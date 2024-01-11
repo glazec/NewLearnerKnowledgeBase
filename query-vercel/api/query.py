@@ -1,3 +1,4 @@
+import sentry_sdk
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 from urllib.parse import urlparse, parse_qs
@@ -11,6 +12,16 @@ import chinese_converter
 from os.path import join
 
 co = cohere.Client(os.environ["COHERE_KEY"])
+sentry_sdk.init(
+    dsn="https://a904fa984312098e8575e7fc6b179d19@o262884.ingest.sentry.io/4506555061829632",
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    traces_sample_rate=1.0,
+    # Set profiles_sample_rate to 1.0 to profile 100%
+    # of sampled transactions.
+    # We recommend adjusting this value in production.
+    profiles_sample_rate=1.0,
+)
 
 
 def single_word_search(texts, query):
@@ -42,7 +53,8 @@ def full_text_search(query):
     filtered_words = [word for word in tokens if word not in stopwords]
     response = np.array([])
     for word in filtered_words:
-        response = np.concatenate((response, single_word_search(texts, word)), axis=0)
+        response = np.concatenate(
+            (response, single_word_search(texts, word)), axis=0)
     response = np.unique(response)
     print(len(response))
     return response
@@ -82,31 +94,40 @@ def rerank_object_to_json(rerank_object):
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        query = urlparse(self.path).query
-        query_params = parse_qs(query)
-        print(query_params)
-        # Now query_params is a dictionary of your query parameters
-        semantic_res = semantic_search(query_params["query"][0])
-        semantic_res = np.array(
-            [i["metadata"]["text"] for i in semantic_res["matches"]]
-        )
-        full_text_res = full_text_search(query_params["query"][0])
-        rerank_candidate = np.concatenate((semantic_res, full_text_res), axis=0)
-        rerank_candidate = np.unique(rerank_candidate)
-        print(rerank_candidate)
-        rerank_result = co.rerank(
-            query=query_params["query"][0],
-            documents=rerank_candidate,
-            top_n=5,
-            model="rerank-multilingual-v2.0",
-        )
+        try:
+            query = urlparse(self.path).query
+            query_params = parse_qs(query)
+            print(query_params)
+            # Now query_params is a dictionary of your query parameters
+            semantic_res = semantic_search(query_params["query"][0])
+            semantic_res = np.array(
+                [i["metadata"]["text"] for i in semantic_res["matches"]]
+            )
+            full_text_res = full_text_search(query_params["query"][0])
+            rerank_candidate = np.concatenate(
+                (semantic_res, full_text_res), axis=0)
+            rerank_candidate = np.unique(rerank_candidate)
+            print(rerank_candidate)
+            rerank_result = co.rerank(
+                query=query_params["query"][0],
+                documents=rerank_candidate,
+                top_n=5,
+                model="rerank-multilingual-v2.0",
+            )
 
-        self.send_response(200)
-        self.send_header("Content-type", "application/json")
-        self.end_headers()
-        self.wfile.write(
-            json.dumps({"matches": rerank_object_to_json(rerank_result)}).encode()
-        )
+            self.send_response(200)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(
+                json.dumps(
+                    {"matches": rerank_object_to_json(rerank_result)}).encode()
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            self.send_response(500)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": str(e)}).encode())
         return
 
     # def do_POST(self):

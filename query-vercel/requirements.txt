@@ -3,3 +3,4 @@ cohere
 numpy
 jieba
 chinese-converter
+sentry-sdk
