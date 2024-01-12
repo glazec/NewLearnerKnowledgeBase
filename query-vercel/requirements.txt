@@ -4,3 +4,4 @@ numpy
 jieba
 chinese-converter
 sentry-sdk
+amplitude-analytics
