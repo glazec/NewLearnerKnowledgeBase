@@ -35,9 +35,9 @@ def single_word_search(texts, query):
     sorted_indices = np.argsort(index)
     # take the top 5 results
     # top_five_counts = index[sorted_indices[-5:]]
-    top_five_texts = texts[sorted_indices[-5:]]
+    top_two_texts = texts[sorted_indices[-2:]]
 
-    return top_five_texts
+    return top_two_texts
 
 
 def full_text_search(query):
@@ -159,10 +159,17 @@ class handler(BaseHTTPRequestHandler):
 
 
 def run(server_class=HTTPServer, handler_class=handler, port=8000):
-    server_address = ("", port)
-    httpd = server_class(server_address, handler_class)
-    print(f"Starting httpd on port {port}...")
-    httpd.serve_forever()
+    try:
+        # create data folder if it doesn't exist
+        os.system("mkdir -p ./data")
+        # copy file under ../data folder to current folder
+        os.system("cp ../data/* ./data")
+        server_address = ("", port)
+        httpd = server_class(server_address, handler_class)
+        print(f"Starting httpd on port {port}...")
+        httpd.serve_forever()
+    finally:
+        os.system("rm -rf ./data")
 
 
 if __name__ == "__main__":
