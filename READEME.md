@@ -44,9 +44,9 @@ query --> Pinecone : accesses for\nembedding storage
 
 Set the environment varaible first.
 
-You can directly run the python code in query as a python server. But need to change the file path used in `open` in the code.`data/` -> `../data`
+You can directly run in query as a python server when working directory is api.
 
-You can also directly run the TG bot code by `npm index.js`
+You can also directly run the TG bot code by `yarn dev` in tg-vercel. Be careful when chage text spliter like ;;; in tg-vercel. The pattern is hardcoded.
 
 # Next
 
@@ -55,3 +55,5 @@ More work need to be done for analytics and feeback loop.
 The current hybrid search result looks good. More work need to be done in data pipeline.
 
 When new post is added to the channel, the data pipeline should be triggered to update the embedding and the database for full text search.
+
+Add some tets for the code.
