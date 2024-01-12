@@ -10,7 +10,10 @@ import os
 import jieba
 import chinese_converter
 from os.path import join
+from amplitude import Amplitude
+from amplitude import BaseEvent
 
+amplitude = Amplitude("5836fffe3657ee0cf0058fb4c044329")
 co = cohere.Client(os.environ["COHERE_KEY"])
 sentry_sdk.init(
     dsn="https://a904fa984312098e8575e7fc6b179d19@o262884.ingest.sentry.io/4506555061829632",
@@ -95,9 +98,18 @@ def rerank_object_to_json(rerank_object):
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
+
             query = urlparse(self.path).query
             query_params = parse_qs(query)
             print(query_params)
+            amplitude.track(
+                BaseEvent(
+                    event_type="Python Query",
+                    event_properties={
+                        "query": query_params["query"][0]
+                    }
+                )
+            )
             # Now query_params is a dictionary of your query parameters
             semantic_res = semantic_search(query_params["query"][0])
             semantic_res = np.array(
