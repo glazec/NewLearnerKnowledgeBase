@@ -142,8 +142,9 @@ class handler(BaseHTTPRequestHandler):
                     {"matches": rerank_object_to_json(refined_rerank_result)}).encode()
             )
         except Exception as e:
-            sentry_sdk.set_context("query", query_params["query"][0])
-            sentry_sdk.capture_exception(e)
+            if not isinstance(e, KeyboardInterrupt):
+                sentry_sdk.set_context("query", query_params["query"][0])
+                sentry_sdk.capture_exception(e)
             self.send_response(500)
             self.send_header("Content-type", "application/json")
             self.end_headers()
