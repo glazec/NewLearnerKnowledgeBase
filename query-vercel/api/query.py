@@ -98,7 +98,6 @@ def rerank_object_to_json(rerank_object):
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
-
             query = urlparse(self.path).query
             query_params = parse_qs(query)
             print(query_params)
@@ -112,29 +111,38 @@ class handler(BaseHTTPRequestHandler):
             )
             # Now query_params is a dictionary of your query parameters
             semantic_res = semantic_search(query_params["query"][0])
+            # clean semantic_res
             semantic_res = np.array(
                 [i["metadata"]["text"] for i in semantic_res["matches"]]
             )
             full_text_res = full_text_search(query_params["query"][0])
+            # combine semantic_res and full_text_res
             rerank_candidate = np.concatenate(
                 (semantic_res, full_text_res), axis=0)
             rerank_candidate = np.unique(rerank_candidate)
             print(rerank_candidate)
+            # rereank full text serach and semantic serach
             rerank_result = co.rerank(
                 query=query_params["query"][0],
                 documents=rerank_candidate,
                 top_n=5,
                 model="rerank-multilingual-v2.0",
             )
+            # set refined_rerank_result as rerank_resutl where relevance_score > 0.1 and ensure the length of refined_rerank_result is at least 1
+            refined_rerank_result = [
+                i for i in rerank_result if i.relevance_score > 0.1]
+            if len(refined_rerank_result) < 1:
+                refined_rerank_result = [rerank_result[1]]
 
             self.send_response(200)
             self.send_header("Content-type", "application/json")
             self.end_headers()
             self.wfile.write(
                 json.dumps(
-                    {"matches": rerank_object_to_json(rerank_result)}).encode()
+                    {"matches": rerank_object_to_json(refined_rerank_result)}).encode()
             )
         except Exception as e:
+            sentry_sdk.set_context("query", query_params["query"][0])
             sentry_sdk.capture_exception(e)
             self.send_response(500)
             self.send_header("Content-type", "application/json")

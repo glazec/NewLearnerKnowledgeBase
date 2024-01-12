@@ -48,6 +48,12 @@ You can directly run in query as a python server when working directory is api.
 
 You can also directly run the TG bot code by `yarn dev` in tg-vercel. Be careful when chage text spliter like ;;; in tg-vercel. The pattern is hardcoded.
 
+There are several parameters to adjust to change the search result
+
+- Full text search top k result
+- Semantic search top k result
+- Hybrid search relevance score threshold
+
 # Next
 
 More work need to be done for analytics and feeback loop.
